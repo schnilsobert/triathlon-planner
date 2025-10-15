@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Setup Your Plan</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 700px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 25px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #333;
+        }
+        textarea {
+            width: 100%;
+            padding: 12px;
+            font-size: 15px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-family: Arial, sans-serif;
+            resize: vertical;
+            min-height: 150px;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+        select {
+            width: 100%;
+            padding: 10px;
+            font-size: 15px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+        }
+        .example {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            color: #555;
+            border-left: 4px solid #007bff;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            font-weight: bold;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .info-list {
+            background: #e7f3ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .info-list ul {
+            margin: 5px 0;
+            padding-left: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏊‍♂️🚴‍♂️🏃‍♂️ AI Training Plan Generator</h1>
+        <p class="subtitle">Describe your situation and get a personalized 4-week plan</p>
+
+        <div class="info-list">
+            <strong>Include in your description:</strong>
+            <ul>
+                <li>Current fitness level & experience</li>
+                <li>Current weekly training volume (hours)</li>
+                <li>Goal training volume (hours)</li>
+                <li>Strong suit sport (swim/bike/run)</li>
+                <li>Limiter sport (what needs work)</li>
+                <li>Your goal race distance</li>
+            </ul>
+        </div>
+
+        <form method="post">
+            <div class="form-group">
+                <label for="description">Describe Your Training Situation:</label>
+                <div class="example">
+                    <strong>Example:</strong> "I'm an intermediate triathlete training for an Olympic distance race. Currently training 6 hours/week, want to build to 10 hours/week. Strong at running, but swimming is my limiter. Can train 5 days per week with double training days on weekends."
+                </div>
+                <textarea name="description" id="description" required placeholder="Write your training situation here..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="days">How many days per week can you train?</label>
+                <select name="days" id="days" required>
+                    <option value="">Select...</option>
+                    <option value="3">3 days</option>
+                    <option value="4">4 days</option>
+                    <option value="5">5 days</option>
+                    <option value="6">6 days</option>
+                    <option value="7">7 days</option>
+                </select>
+            </div>
+
+            <button type="submit">Generate My Training Plan</button>
+        </form>
+    </div>
+</body>
+</html>

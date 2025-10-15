@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Your Training Plan</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 32px;
+            margin-bottom: 20px;
+        }
+
+        .user-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .user-summary-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .user-summary-item strong {
+            display: block;
+            color: #667eea;
+            font-size: 12px;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .user-summary-item span {
+            color: #333;
+            font-size: 16px;
+        }
+
+        .week-container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+
+        .week-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .week-title {
+            font-size: 28px;
+            color: #333;
+            font-weight: 700;
+        }
+
+        .week-summary {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .week-stat {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .week-stat span {
+            font-size: 18px;
+            margin-right: 5px;
+        }
+
+        .activity-summary {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+
+        .activity-badge {
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .activity-badge.swim {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .activity-badge.bike {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .activity-badge.run {
+            background: #e8f5e9;
+            color: #388e3c;
+        }
+
+        .activity-badge.strength {
+            background: #fce4ec;
+            color: #c2185b;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .day-card {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 15px;
+            min-height: 140px;
+            position: relative;
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: 2px solid transparent;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .day-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        }
+
+        .day-card.rest {
+            background: #f0f0f0;
+            border: 2px dashed #ccc;
+        }
+
+        .day-card.double-day {
+            border: 2px solid #ff6b6b;
+            background: linear-gradient(135deg, #fff5f5 0%, #ffe8e8 100%);
+        }
+
+        .day-card.completed {
+            opacity: 0.7;
+            border-color: #4caf50;
+        }
+
+        .day-number {
+            font-size: 12px;
+            font-weight: 700;
+            color: #999;
+            margin-bottom: 10px;
+        }
+
+        .day-card.double-day .day-number::after {
+            content: " 🔥 DOUBLE";
+            color: #ff6b6b;
+            font-size: 10px;
+            margin-left: 5px;
+        }
+
+        .day-card.completed .day-number::after {
+            content: " ✓";
+            color: #4caf50;
+        }
+
+        .workout-card {
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .workout-card:last-of-type {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+
+        .workout-activity {
+            font-weight: 700;
+            font-size: 14px;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .workout-activity.swim { color: #1976d2; }
+        .workout-activity.bike { color: #f57c00; }
+        .workout-activity.run { color: #388e3c; }
+        .workout-activity.strength { color: #c2185b; }
+
+        .workout-duration {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .workout-description {
+            font-size: 12px;
+            color: #555;
+            line-height: 1.4;
+            margin-bottom: 10px;
+        }
+
+        .complete-btn {
+            width: 100%;
+            padding: 8px;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: auto;
+        }
+
+        .complete-btn:not(.completed) {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .complete-btn:not(.completed):hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .complete-btn.completed {
+            background: #4caf50;
+            color: white;
+            cursor: default;
+        }
+
+        .rest-day {
+            text-align: center;
+            color: #999;
+            font-size: 14px;
+            font-weight: 600;
+            padding: 20px;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+        }
+
+        .footer a {
+            display: inline-block;
+            background: white;
+            color: #667eea;
+            padding: 15px 30px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+
+        .footer a:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        }
+
+        @media (max-width: 1200px) {
+            .calendar-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .calendar-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .week-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .calendar-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏊‍♂️ Your 4-Week Training Plan</h1>
+            <div class="user-summary">
+                <div class="user-summary-item">
+                    <strong>Training Days</strong>
+                    <span>{{ user.days_per_week }} days/week</span>
+                </div>
+                <div class="user-summary-item">
+                    <strong>Fitness Level</strong>
+                    <span>{{ user.fitness_level[:50] }}...</span>
+                </div>
+                <div class="user-summary-item">
+                    <strong>Goal</strong>
+                    <span>{{ user.goal|title }}</span>
+                </div>
+            </div>
+        </div>
+
+        {% set weeks = {} %}
+        {% for workout in plan %}
+            {% set week_num = workout.week_number %}
+            {% if week_num not in weeks %}
+                {% set _ = weeks.update({week_num: []}) %}
+            {% endif %}
+            {% set _ = weeks[week_num].append(workout) %}
+        {% endfor %}
+
+        {% for week_num in weeks.keys()|sort %}
+            {% set week_workouts = weeks[week_num] %}
+            <div class="week-container">
+                <div class="week-header">
+                    <div>
+                        <div class="week-title">Week {{ week_num }}</div>
+                        <div class="activity-summary">
+                            {% set swim_count = week_workouts|selectattr('activity_type', 'equalto', 'swim')|list|length %}
+                            {% set bike_count = week_workouts|selectattr('activity_type', 'equalto', 'bike')|list|length %}
+                            {% set run_count = week_workouts|selectattr('activity_type', 'equalto', 'run')|list|length %}
+                            {% set strength_count = week_workouts|selectattr('activity_type', 'equalto', 'strength')|list|length %}
+
+                            {% if swim_count > 0 %}
+                                <div class="activity-badge swim">🏊 {{ swim_count }}x Swim</div>
+                            {% endif %}
+                            {% if bike_count > 0 %}
+                                <div class="activity-badge bike">🚴 {{ bike_count }}x Bike</div>
+                            {% endif %}
+                            {% if run_count > 0 %}
+                                <div class="activity-badge run">🏃 {{ run_count }}x Run</div>
+                            {% endif %}
+                            {% if strength_count > 0 %}
+                                <div class="activity-badge strength">💪 {{ strength_count }}x Strength</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="week-summary">
+                        {% set total_minutes = week_workouts|sum(attribute='duration') %}
+                        {% set total_hours = (total_minutes / 60)|round(1) %}
+                        <div class="week-stat">
+                            <span>⏱️</span> {{ total_hours }}h total
+                        </div>
+                        <div class="week-stat">
+                            <span>📅</span> {{ week_workouts|length }} workouts
+                        </div>
+                    </div>
+                </div>
+
+                <div class="calendar-grid">
+                    {% for day in range(1, 8) %}
+                        {% set day_workouts = week_workouts|selectattr('day_number', 'equalto', day)|list %}
+                        {% if day_workouts %}
+                            {% set is_double = day_workouts|length >= 2 %}
+                            <div class="day-card {% if is_double %}double-day{% endif %}">
+                                <div class="day-number">Day {{ day }}</div>
+                                {% for workout in day_workouts %}
+                                    <div class="workout-card">
+                                        <div class="workout-activity {{ workout.activity_type }}">
+                                            {{ workout.activity_type }}
+                                        </div>
+                                        <div class="workout-duration">
+                                            ⏱️ {{ workout.duration }} min
+                                        </div>
+                                        <div class="workout-description">
+                                            {{ workout.description }}
+                                        </div>
+                                        <form method="post" action="/complete/{{ workout.id }}" style="margin-top: 5px;">
+                                            <button type="submit" class="complete-btn {% if workout.completed %}completed{% endif %}">
+                                                {% if workout.completed %}✓ Done{% else %}Complete{% endif %}
+                                            </button>
+                                        </form>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="day-card rest">
+                                <div class="day-number">Day {{ day }}</div>
+                                <div class="rest-day">
+                                    💤 Rest Day
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        {% endfor %}
+
+        <div class="footer">
+            <a href="/setup">Start New Plan</a>
+        </div>
+    </div>
+</body>
+</html>

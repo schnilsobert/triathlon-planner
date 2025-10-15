@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Error</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 100px auto;
+            text-align: center;
+            padding: 20px;
+        }
+        .error-box {
+            background: #fee;
+            border: 2px solid #c33;
+            border-radius: 8px;
+            padding: 30px;
+        }
+        h1 { color: #c33; }
+        a {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="error-box">
+        <h1>Oops!</h1>
+        <p>{{ message }}</p>
+        <a href="/setup">Try Again</a>
+    </div>
+</body>
+</html>
