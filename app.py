@@ -21,11 +21,41 @@ def get_db():
     conn.row_factory = sqlite3.Row
     return conn
 
+def init_db():
+    """Create tables if they don't exist"""
+    conn = get_db()
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            days_per_week TEXT NOT NULL,
+            fitness_level TEXT NOT NULL,
+            goal TEXT NOT NULL
+        )
+    """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS plans (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            week_number INTEGER NOT NULL,
+            day_number INTEGER NOT NULL,
+            activity_type TEXT NOT NULL,
+            duration INTEGER NOT NULL,
+            description TEXT NOT NULL,
+            completed INTEGER DEFAULT 0,
+            FOREIGN KEY (user_id) REFERENCES users (id)
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+# Initialize database on startup
+init_db()
+
 def generate_plan_with_ai(user_description, days_per_week):
     """Generate 4 weeks at a time - fast enough to avoid timeout"""
     all_workouts = []
 
-    for week_num in range(1, 5):  # Just 4 weeks = ~8-12 seconds
+    for week_num in range(1, 5):
         prompt = f"""Create week {week_num} of a 4-week triathlon training plan for this athlete:
 
 {user_description}
@@ -89,7 +119,6 @@ Return ONLY a valid JSON array: [{{"week": {week_num}, "day": 1, "activity": "sw
                 print(f"Week {week_num}: Invalid workout list")
                 return None
 
-            # Validate required fields
             for workout in week_workouts:
                 required = ["week", "day", "activity", "duration", "description"]
                 if not all(key in workout for key in required):
@@ -102,7 +131,7 @@ Return ONLY a valid JSON array: [{{"week": {week_num}, "day": 1, "activity": "sw
             time.sleep(0.5)
 
         except Exception as e:
-            print(f"❌ Error generating week {week_num}: {e}")
+            print(f"Error generating week {week_num}: {e}")
             return None
 
     print(f"Total: {len(all_workouts)} workouts generated")
@@ -120,7 +149,6 @@ def setup():
         description = request.form.get("description", "").strip()
         days = request.form.get("days", "").strip()
 
-        # Validation
         if not description or len(description) < 20:
             return render_template("error.html",
                 message="Please provide a more detailed description (at least 20 characters)."), 400
@@ -129,12 +157,16 @@ def setup():
             return render_template("error.html",
                 message="Please select a valid number of training days (3-7)."), 400
 
-        # Save to database
         try:
-            user_id = db.execute(
+            conn = get_db()
+            cursor = conn.cursor()
+            cursor.execute(
                 "INSERT INTO users (days_per_week, fitness_level, goal) VALUES (?, ?, ?)",
-                days, description, "AI-Generated"
+                (days, description, "AI-Generated")
             )
+            user_id = cursor.lastrowid
+            conn.commit()
+            conn.close()
         except Exception as e:
             print(f"Database error: {e}")
             return render_template("error.html",
@@ -153,63 +185,81 @@ def plan():
 
     user_id = session["user_id"]
 
-    # Get user data
     try:
-        user = db.execute("SELECT * FROM users WHERE id = ?", user_id)
+        conn = get_db()
+        cursor = conn.cursor()
+        
+        # Get user data
+        cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
+        user = cursor.fetchone()
+        
         if not user:
+            conn.close()
             session.pop("user_id", None)
             return redirect("/setup")
-        user = user[0]
+        
+        # Check for existing plan
+        cursor.execute(
+            "SELECT * FROM plans WHERE user_id = ? ORDER BY week_number, day_number",
+            (user_id,)
+        )
+        existing_plan = cursor.fetchall()
+
+        if not existing_plan:
+            print(f"Generating new plan for user {user_id}...")
+            conn.close()
+
+            # Generate AI plan
+            ai_plan = generate_plan_with_ai(user["fitness_level"], user["days_per_week"])
+
+            if not ai_plan or not isinstance(ai_plan, list) or len(ai_plan) == 0:
+                print("AI plan generation failed")
+                return render_template("error.html",
+                    message="Could not generate training plan. Please try again in a moment."), 503
+
+            print(f"Saving {len(ai_plan)} workouts...")
+
+            # Save workouts
+            conn = get_db()
+            cursor = conn.cursor()
+            saved_count = 0
+            
+            for workout in ai_plan:
+                try:
+                    cursor.execute("""
+                        INSERT INTO plans
+                        (user_id, week_number, day_number, activity_type, duration, description)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    """, (user_id, workout["week"], workout["day"],
+                         workout["activity"], workout["duration"], workout["description"]))
+                    saved_count += 1
+                except Exception as e:
+                    print(f"Error saving workout: {e}")
+                    continue
+            
+            conn.commit()
+
+            if saved_count == 0:
+                conn.close()
+                return render_template("error.html",
+                    message="Failed to save your plan. Please try again."), 500
+
+            print(f"Saved {saved_count} workouts!")
+
+            # Get the saved plan
+            cursor.execute(
+                "SELECT * FROM plans WHERE user_id = ? ORDER BY week_number, day_number",
+                (user_id,)
+            )
+            existing_plan = cursor.fetchall()
+
+        conn.close()
+        return render_template("plan.html", plan=existing_plan, user=user)
+        
     except Exception as e:
         print(f"Database error: {e}")
         return render_template("error.html",
             message="Error loading your data."), 500
-
-    # Check for existing plan
-    existing_plan = db.execute(
-        "SELECT * FROM plans WHERE user_id = ? ORDER BY week_number, day_number",
-        user_id
-    )
-
-    if not existing_plan:
-        print(f"Generating new plan for user {user_id}...")
-
-        # Generate AI plan
-        ai_plan = generate_plan_with_ai(user["fitness_level"], user["days_per_week"])
-
-        if not ai_plan or not isinstance(ai_plan, list) or len(ai_plan) == 0:
-            print("❌ AI plan generation failed")
-            return render_template("error.html",
-                message="Could not generate training plan. Please try again in a moment."), 503
-
-        print(f"Saving {len(ai_plan)} workouts...")
-
-        saved_count = 0
-        for workout in ai_plan:
-            try:
-                db.execute("""
-                    INSERT INTO plans
-                    (user_id, week_number, day_number, activity_type, duration, description)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                """, user_id, workout["week"], workout["day"],
-                workout["activity"], workout["duration"], workout["description"])
-                saved_count += 1
-            except Exception as e:
-                print(f"Error saving workout: {e}")
-                continue
-
-        if saved_count == 0:
-            return render_template("error.html",
-                message="Failed to save your plan. Please try again."), 500
-
-        print(f"✅ Saved {saved_count} workouts!")
-
-        existing_plan = db.execute(
-            "SELECT * FROM plans WHERE user_id = ? ORDER BY week_number, day_number",
-            user_id
-        )
-
-    return render_template("plan.html", plan=existing_plan, user=user)
 
 
 @app.route("/complete/<int:workout_id>", methods=["POST"])
@@ -218,19 +268,25 @@ def complete_workout(workout_id):
         return redirect("/setup")
 
     try:
+        conn = get_db()
+        cursor = conn.cursor()
+        
         # Verify workout belongs to this user
-        workout = db.execute(
+        cursor.execute(
             "SELECT * FROM plans WHERE id = ? AND user_id = ?",
-            workout_id, session["user_id"]
+            (workout_id, session["user_id"])
         )
+        workout = cursor.fetchone()
 
         if not workout:
+            conn.close()
             return redirect("/plan")
 
         # Toggle completion
-        current = workout[0]
-        new_status = 0 if current["completed"] == 1 else 1
-        db.execute("UPDATE plans SET completed = ? WHERE id = ?", new_status, workout_id)
+        new_status = 0 if workout["completed"] == 1 else 1
+        cursor.execute("UPDATE plans SET completed = ? WHERE id = ?", (new_status, workout_id))
+        conn.commit()
+        conn.close()
 
     except Exception as e:
         print(f"Error toggling workout: {e}")
