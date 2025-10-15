@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, session, redirect
 from flask_session import Session
-from cs50 import SQL
+import sqlite3
 from openai import OpenAI
 from dotenv import load_dotenv
 import os
@@ -16,7 +16,10 @@ app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
 
-db = SQL("sqlite:///triathlon.db")
+def get_db():
+    conn = sqlite3.connect('triathlon.db')
+    conn.row_factory = sqlite3.Row
+    return conn
 
 def generate_plan_with_ai(user_description, days_per_week):
     """Generate 4 weeks at a time - fast enough to avoid timeout"""
@@ -64,14 +67,14 @@ Return ONLY a valid JSON array: [{{"week": {week_num}, "day": 1, "activity": "sw
             content = response.choices[0].message.content
 
             if not content or len(content.strip()) == 0:
-                print(f"⚠️ Week {week_num}: Empty response")
+                print(f"Week {week_num}: Empty response")
                 return None
 
             start = content.find('[')
             end = content.rfind(']') + 1
 
             if start == -1 or end == 0:
-                print(f"⚠️ Week {week_num}: No JSON array found")
+                print(f"Week {week_num}: No JSON array found")
                 return None
 
             json_str = content[start:end]
@@ -79,22 +82,22 @@ Return ONLY a valid JSON array: [{{"week": {week_num}, "day": 1, "activity": "sw
             try:
                 week_workouts = json.loads(json_str)
             except json.JSONDecodeError as e:
-                print(f"⚠️ Week {week_num}: JSON parse error: {e}")
+                print(f"Week {week_num}: JSON parse error: {e}")
                 return None
 
             if not isinstance(week_workouts, list) or len(week_workouts) == 0:
-                print(f"⚠️ Week {week_num}: Invalid workout list")
+                print(f"Week {week_num}: Invalid workout list")
                 return None
 
             # Validate required fields
             for workout in week_workouts:
                 required = ["week", "day", "activity", "duration", "description"]
                 if not all(key in workout for key in required):
-                    print(f"⚠️ Week {week_num}: Missing required fields")
+                    print(f"Week {week_num}: Missing required fields")
                     return None
 
             all_workouts.extend(week_workouts)
-            print(f"✅ Week {week_num}: {len(week_workouts)} workouts")
+            print(f"Week {week_num}: {len(week_workouts)} workouts")
 
             time.sleep(0.5)
 
@@ -102,7 +105,7 @@ Return ONLY a valid JSON array: [{{"week": {week_num}, "day": 1, "activity": "sw
             print(f"❌ Error generating week {week_num}: {e}")
             return None
 
-    print(f"✅ Total: {len(all_workouts)} workouts generated")
+    print(f"Total: {len(all_workouts)} workouts generated")
     return all_workouts
 
 
